@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Minimal Permissions - Vimium</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success { color: green; }
+        .fail { color: red; }
+        .info { color: blue; }
+        #log {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+        .scrollable {
+            height: 1000px;
+            background: linear-gradient(to bottom, #e0e0e0, #f0f0f0);
+        }
+        a {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+        }
+        a:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vimium Minimal Permissions Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Keyboard Event Detection</h2>
+        <p class="info">Press any key to verify keyboard events are being captured:</p>
+        <div id="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Scrolling Commands</h2>
+        <p class="info">Try these Vimium commands:</p>
+        <ul>
+            <li><code>j</code> - Scroll down (should work ✅)</li>
+            <li><code>k</code> - Scroll up (should work ✅)</li>
+            <li><code>gg</code> - Scroll to top (should work ✅)</li>
+            <li><code>G</code> - Scroll to bottom (should work ✅)</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Link Hints</h2>
+        <p class="info">Try these Vimium commands:</p>
+        <ul>
+            <li><code>f</code> - Activate link hints (should work ✅)</li>
+            <li><code>F</code> - Open in new tab (hints work, opening fails ❌)</li>
+        </ul>
+        <a href="#link1">Test Link 1</a>
+        <a href="#link2">Test Link 2</a>
+        <a href="#link3">Test Link 3</a>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Other Modes</h2>
+        <p class="info">Try these Vimium commands:</p>
+        <ul>
+            <li><code>/</code> - Find mode (should work ✅)</li>
+            <li><code>i</code> - Insert mode (should work ✅)</li>
+            <li><code>v</code> - Visual mode (should work ✅)</li>
+            <li><code>?</code> - Help dialog (should work ✅)</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Commands Requiring Removed Permissions</h2>
+        <p class="info">These should detect the key but fail to execute:</p>
+        <ul>
+            <li><code>t</code> - New tab (will fail ❌ - needs tabs permission)</li>
+            <li><code>x</code> - Close tab (will fail ❌ - needs tabs permission)</li>
+            <li><code>J</code> - Previous tab (will fail ❌ - needs tabs permission)</li>
+            <li><code>K</code> - Next tab (will fail ❌ - needs tabs permission)</li>
+        </ul>
+    </div>
+
+    <div class="scrollable">
+        <p>Scrollable content area - use j/k to scroll...</p>
+    </div>
+
+    <script>
+        // Log keyboard events to demonstrate they're being captured
+        let keyCount = 0;
+        const log = document.getElementById('log');
+        
+        document.addEventListener('keydown', (e) => {
+            keyCount++;
+            const entry = document.createElement('div');
+            entry.textContent = `#${keyCount} - Key: "${e.key}" | Code: "${e.code}" | Time: ${new Date().toLocaleTimeString()}`;
+            log.insertBefore(entry, log.firstChild);
+            
+            // Keep only last 10 entries
+            while (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+        });
+
+        console.log('Test page loaded. Vimium should capture keyboard events before this listener.');
+        console.log('If you see this message but not Vimium behavior, check:');
+        console.log('1. Extension is loaded');
+        console.log('2. Extension has storage permission');
+        console.log('3. Extension has host_permissions for this page');
+    </script>
+</body>
+</html>
