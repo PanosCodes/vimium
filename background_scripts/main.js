@@ -84,8 +84,11 @@ function onURLChange(details) {
 // Re-check whether Vimium is enabled for a frame when the URL changes without a reload.
 // There's no reliable way to detect when the URL has changed in the content script, so we
 // have to use the webNavigation API in our background script.
-chrome.webNavigation.onHistoryStateUpdated.addListener(onURLChange); // history.pushState.
-chrome.webNavigation.onReferenceFragmentUpdated.addListener(onURLChange); // Hash changed.
+// Note: webNavigation permission is optional - if not available, URL change detection won't work.
+if (chrome.webNavigation) {
+  chrome.webNavigation.onHistoryStateUpdated.addListener(onURLChange); // history.pushState.
+  chrome.webNavigation.onReferenceFragmentUpdated.addListener(onURLChange); // Hash changed.
+}
 
 if (!globalThis.isUnitTests) {
   // Cache "content_scripts/vimium.css" in chrome.storage.session for UI components.
@@ -484,24 +487,30 @@ function selectTab(direction, { count, tab }) {
   });
 }
 
-chrome.webNavigation.onCommitted.addListener(async ({ tabId, frameId }) => {
-  // Vimium can't run on all tabs (e.g. chrome:// URLs). insertCSS will throw an error on such tabs,
-  // which is expected, and noise. Swallow that error.
-  const swallowError = () => {};
-  await Settings.onLoaded();
-  await chrome.scripting.insertCSS({
-    css: Settings.get("userDefinedLinkHintCss"),
-    target: {
-      tabId: tabId,
-      frameIds: [frameId],
-    },
-  }).catch(swallowError);
-});
+if (chrome.webNavigation) {
+  chrome.webNavigation.onCommitted.addListener(async ({ tabId, frameId }) => {
+    // Vimium can't run on all tabs (e.g. chrome:// URLs). insertCSS will throw an error on such tabs,
+    // which is expected, and noise. Swallow that error.
+    const swallowError = () => {};
+    await Settings.onLoaded();
+    await chrome.scripting.insertCSS({
+      css: Settings.get("userDefinedLinkHintCss"),
+      target: {
+        tabId: tabId,
+        frameIds: [frameId],
+      },
+    }).catch(swallowError);
+  });
+}
 
 // Returns all frame IDs for the given tab. Note that in Chrome, this will omit frame IDs for frames
 // or iFrames which contain chrome-extension:// URLs, even if those pages are listed in Vimium's
 // web_accessible_resources in manifest.json.
 async function getFrameIdsForTab(tabId) {
+  // If webNavigation API is not available, fall back to just the main frame (frameId 0)
+  if (!chrome.webNavigation) {
+    return [0];
+  }
   // getAllFrames unfortunately excludes frames and iframes from chrome-extension:// URLs.
   // In Firefox, by contrast, pages with moz-extension:// URLs are included.
   const frames = await chrome.webNavigation.getAllFrames({ tabId: tabId });
@@ -847,6 +856,11 @@ async function showUpgradeMessageIfNecessary(onInstalledDetails) {
 }
 
 async function injectContentScriptsAndCSSIntoExistingTabs() {
+  // If scripting API is not available (e.g. minimal permissions), skip injection
+  if (!chrome.scripting) {
+    return;
+  }
+  
   const manifest = chrome.runtime.getManifest();
   const contentScriptConfig = manifest.content_scripts[0];
   const contentScripts = contentScriptConfig.js;
